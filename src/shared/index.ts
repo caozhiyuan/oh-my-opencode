@@ -41,6 +41,7 @@ export type {
   ModelResolutionResult,
 } from "./model-resolution-types"
 export * from "./model-availability"
+export * from "./fallback-model-availability"
 export * from "./connected-providers-cache"
 export * from "./session-utils"
 export * from "./tmux"
@@ -54,3 +55,4 @@ export * from "./truncate-description"
 export * from "./opencode-storage-paths"
 export * from "./opencode-message-dir"
 export * from "./normalize-sdk-response"
+export * from "./session-directory-resolver"

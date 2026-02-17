@@ -349,6 +349,204 @@ describe("Agent permission defaults", () => {
   })
 })
 
+describe("default_agent behavior with Sisyphus orchestration", () => {
+  test("canonicalizes configured default_agent with surrounding whitespace", async () => {
+    // given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "  hephaestus  ",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // when
+    await handler(config)
+
+    // then
+    expect(config.default_agent).toBe(getAgentDisplayName("hephaestus"))
+  })
+
+  test("canonicalizes configured default_agent when key uses mixed case", async () => {
+    // given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "HePhAeStUs",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // when
+    await handler(config)
+
+    // then
+    expect(config.default_agent).toBe(getAgentDisplayName("hephaestus"))
+  })
+
+  test("canonicalizes configured default_agent key to display name", async () => {
+    // #given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "hephaestus",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // #when
+    await handler(config)
+
+    // #then
+    expect(config.default_agent).toBe(getAgentDisplayName("hephaestus"))
+  })
+
+  test("preserves existing display-name default_agent", async () => {
+    // #given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const displayName = getAgentDisplayName("hephaestus")
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: displayName,
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // #when
+    await handler(config)
+
+    // #then
+    expect(config.default_agent).toBe(displayName)
+  })
+
+  test("sets default_agent to sisyphus when missing", async () => {
+    // #given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // #when
+    await handler(config)
+
+    // #then
+    expect(config.default_agent).toBe(getAgentDisplayName("sisyphus"))
+  })
+
+  test("sets default_agent to sisyphus when configured default_agent is empty after trim", async () => {
+    // given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "    ",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // when
+    await handler(config)
+
+    // then
+    expect(config.default_agent).toBe(getAgentDisplayName("sisyphus"))
+  })
+
+  test("preserves custom default_agent names while trimming whitespace", async () => {
+    // given
+    const pluginConfig: OhMyOpenCodeConfig = {}
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "  Custom Agent  ",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // when
+    await handler(config)
+
+    // then
+    expect(config.default_agent).toBe("Custom Agent")
+  })
+
+  test("does not normalize configured default_agent when Sisyphus is disabled", async () => {
+    // given
+    const pluginConfig: OhMyOpenCodeConfig = {
+      sisyphus_agent: {
+        disabled: true,
+      },
+    }
+    const config: Record<string, unknown> = {
+      model: "anthropic/claude-opus-4-6",
+      default_agent: "  HePhAeStUs  ",
+      agent: {},
+    }
+    const handler = createConfigHandler({
+      ctx: { directory: "/tmp" },
+      pluginConfig,
+      modelCacheState: {
+        anthropicContext1MEnabled: false,
+        modelContextLimitsCache: new Map(),
+      },
+    })
+
+    // when
+    await handler(config)
+
+    // then
+    expect(config.default_agent).toBe("  HePhAeStUs  ")
+  })
+})
+
 describe("Prometheus category config resolution", () => {
   test("resolves ultrabrain category config", () => {
     // given

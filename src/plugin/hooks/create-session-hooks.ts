@@ -1,4 +1,5 @@
 import type { OhMyOpenCodeConfig, HookName } from "../../config"
+import type { ModelCacheState } from "../../plugin-state"
 import type { PluginContext } from "../types"
 
 import {
@@ -13,6 +14,7 @@ import {
   createInteractiveBashSessionHook,
   createRalphLoopHook,
   createEditErrorRecoveryHook,
+  createJsonErrorRecoveryHook,
   createDelegateTaskRetryHook,
   createTaskResumeInfoHook,
   createStartWorkHook,
@@ -43,6 +45,7 @@ export type SessionHooks = {
   interactiveBashSession: ReturnType<typeof createInteractiveBashSessionHook> | null
   ralphLoop: ReturnType<typeof createRalphLoopHook> | null
   editErrorRecovery: ReturnType<typeof createEditErrorRecoveryHook> | null
+  jsonErrorRecovery: ReturnType<typeof createJsonErrorRecoveryHook> | null
   delegateTaskRetry: ReturnType<typeof createDelegateTaskRetryHook> | null
   startWork: ReturnType<typeof createStartWorkHook> | null
   prometheusMdOnly: ReturnType<typeof createPrometheusMdOnlyHook> | null
@@ -55,21 +58,24 @@ export type SessionHooks = {
 export function createSessionHooks(args: {
   ctx: PluginContext
   pluginConfig: OhMyOpenCodeConfig
+  modelCacheState: ModelCacheState
   isHookEnabled: (hookName: HookName) => boolean
   safeHookEnabled: boolean
 }): SessionHooks {
-  const { ctx, pluginConfig, isHookEnabled, safeHookEnabled } = args
+  const { ctx, pluginConfig, modelCacheState, isHookEnabled, safeHookEnabled } = args
   const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
     safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
 
   const contextWindowMonitor = isHookEnabled("context-window-monitor")
-    ? safeHook("context-window-monitor", () => createContextWindowMonitorHook(ctx))
+    ? safeHook("context-window-monitor", () =>
+        createContextWindowMonitorHook(ctx, modelCacheState))
     : null
 
   const preemptiveCompaction =
     isHookEnabled("preemptive-compaction") &&
     pluginConfig.experimental?.preemptive_compaction
-      ? safeHook("preemptive-compaction", () => createPreemptiveCompactionHook(ctx))
+      ? safeHook("preemptive-compaction", () =>
+          createPreemptiveCompactionHook(ctx, modelCacheState))
       : null
 
   const sessionRecovery = isHookEnabled("session-recovery")
@@ -130,6 +136,10 @@ export function createSessionHooks(args: {
     ? safeHook("edit-error-recovery", () => createEditErrorRecoveryHook(ctx))
     : null
 
+  const jsonErrorRecovery = isHookEnabled("json-error-recovery")
+    ? safeHook("json-error-recovery", () => createJsonErrorRecoveryHook(ctx))
+    : null
+
   const delegateTaskRetry = isHookEnabled("delegate-task-retry")
     ? safeHook("delegate-task-retry", () => createDelegateTaskRetryHook(ctx))
     : null
@@ -166,6 +176,7 @@ export function createSessionHooks(args: {
     interactiveBashSession,
     ralphLoop,
     editErrorRecovery,
+    jsonErrorRecovery,
     delegateTaskRetry,
     startWork,
     prometheusMdOnly,

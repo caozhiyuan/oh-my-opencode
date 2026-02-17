@@ -10,6 +10,7 @@ import {
   handleMessageUpdated,
   handleToolExecute,
   handleToolResult,
+  handleTuiToast,
 } from "./event-handlers"
 
 export async function processEvents(
@@ -23,11 +24,15 @@ export async function processEvents(
     try {
       const payload = event as EventPayload
       if (!payload?.type) {
-        console.error(pc.dim(`[event] no type: ${JSON.stringify(event)}`))
+        if (ctx.verbose) {
+          console.error(pc.dim(`[event] no type: ${JSON.stringify(event)}`))
+        }
         continue
       }
 
-      logEventVerbose(ctx, payload)
+      if (ctx.verbose) {
+        logEventVerbose(ctx, payload)
+      }
 
       handleSessionError(ctx, payload, state)
       handleSessionIdle(ctx, payload, state)
@@ -36,6 +41,7 @@ export async function processEvents(
       handleMessageUpdated(ctx, payload, state)
       handleToolExecute(ctx, payload, state)
       handleToolResult(ctx, payload, state)
+      handleTuiToast(ctx, payload, state)
     } catch (err) {
       console.error(pc.red(`[event error] ${err}`))
     }
